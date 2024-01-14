@@ -88,8 +88,10 @@ Therefore, a principal challenge in verifying FHE lies in accurately validating 
 
 While this might initially seem like a foray into advanced cryptography, it's reassuring to note that the process predominantly revolves around manipulating polynomials and matrices, as shown by Figure 4, which is extracted from Marc Joye’s [primer](https://eprint.iacr.org/2021/1402) on TFHE. For those keen on delving deeper, we highly recommend this primer by Marc Joye on TFHE, which is approachable for those with just a basic understanding of linear algebra.
 
-![](https://hackmd.io/_uploads/SJMrMkyY6.png =500x)
-Figure 4: A summary of the bootstrapping algorithm in TFHE from Marc Joye’s [primer](https://eprint.iacr.org/2021/1402).
+![](https://hackmd.io/_uploads/SJMrMkyY6.png#center =500x)
+<div class="caption">
+Figure 4: A summary of the bootstrapping algorithm in TFHE from Marc Joye’s <a href="https://eprint.iacr.org/2021/1402">primer</a>.
+</div>
 
 Now that we have some basic background about FHE, let’s explore how RISC Zero can be useful here.
 
@@ -104,18 +106,20 @@ A frequently asked question about RISC Zero is its preference for RISC-V over ot
 
 **First, RISC-V has a simple but universal instruction set.** RISC Zero only needs to support the following 46 instructions from [riscv32im](https://five-embeddev.com/riscv-isa-manual/latest/instr-table.html).
 
-
-| LB | LH | LW | LBU | LHU |
-| -- | -- | -- | -- | --|
-| **ADDI** | **SLLI** | **SLTI** | **SLTIU** | **XORI** |
-| **SRLI** | **SRAI** | **ORI** | **ANDI** | **AUIPC** |
-| **SB** | **SH** | **AW** | **ADD** | **SUB** |
-| **SLL** | **SLT** | **SLTU** | **XOR** | **SRL** |
-| **SRA** | **OR** | **AND** | **MUL** | **MULH** |
-| **MULSU** | **MULU** | **DIV** | **DIVU** | **REM** |
-| **REMU** | **LUI** | **BEQ** | **BNE** | **BLT** |
-| **BGE** | **BGEU** | **JALR** | **JAL** | **ECALL** |
-| **EBREAK** | | | | 
+<table class="caption" style="text-align: center; width: 60%; font-size:14px;">
+    <tbody>
+        <tr><td>LB</td><td>LH</td><td>LW</td><td>LBU</td><td>LHU</td></tr>
+        <tr><td>ADDI</td><td>SLLI</td><td>SLTI</td><td>SLTIU</td><td>XORI</td></tr>
+        <tr><td>SRLI</td><td>SRAI</td><td>ORI</td><td>ANDI</td><td>AUIPC</td></tr>
+        <tr><td>SB</td><td>SH</td><td>AW</td><td>ADD</td><td>SUB</td></tr>
+        <tr><td>SLL</td><td>SLT</td><td>SLTU</td><td>XOR</td><td>SRL</td></tr>
+        <tr><td>SRA</td><td>OR</td><td>AND</td><td>MUL</td><td>MULH</td></tr>
+        <tr><td>MULSU</td><td>MULU</td><td>DIV</td><td>DIVU</td><td>REM</td></tr>
+        <tr><td>REMU</td><td>LUI</td><td>BEQ</td><td>BNE</td><td>BLT</td></tr>
+        <tr><td>BGE</td><td>BGEU</td><td>JALR</td><td>JAL</td><td>ECALL</td></tr>
+        <tr><td>EBREAK</td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+</table>
 
 This is much simpler from [modern Intel x86](https://www.felixcloutier.com/x86/)—which has 1131 instructions, and modern ARM can be up to hundreds of instructions. RISC-V is also not too different from other minimalistic instruction sets—MIPS (the company of MIPS later transitioned into working on RISC-V), WASM, and very early generations of ARM such as ARMv4T.
 
@@ -420,8 +424,10 @@ Figure 10: The "c" file that stores the ciphertext to be bootstrapped, shown in 
 
 In a similar vein, by navigating to the second label — `anon.874983810a662adbf4687c54e184621b.0.llvm.4718791565163837729` — we can locate the bytes corresponding to the bootstrapping key, referred to as `BSK_BYTES`.
 
-![](https://hackmd.io/_uploads/Sk4gCJkt6.png =500x)
+![](https://hackmd.io/_uploads/Sk4gCJkt6.png#center =500x)
+<div class="caption">
 Figure 11: The ELF executable file's data at location 0x020c4cc (i.e., the s0 register's initial value), which is for the bootstrapping key.
+</div>
 
 And we can also check the source file "bsk", which matches the data above.
 
@@ -503,6 +509,7 @@ _Footnote:_ The previous version of the article uses `include_bytes` instead of 
         margin-left: auto;
         margin-right: auto;
         display: block;
+        width: 90%;
     }
     img[src*='#center'] {
         display: block;
