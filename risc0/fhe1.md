@@ -18,8 +18,11 @@ We pick RISC Zero for three reasons.
 - We happen to have a highly coveted and limited [Bonsai API](https://dev.risczero.com/api/bonsai/) key that allows us to offload the proof generation process to RISC Zero’s dedicated Bonsai servers, thereby alleviating the need for local proof generation.
 
 
-![](https://hackmd.io/_uploads/BkNOrA0OT.png =400x)
-Figure 1: RISC Zero’s Bonsai delegated proof generation services.
+![](https://hackmd.io/_uploads/BkNOrA0OT.png#center =400x)
+
+<div class="caption"> 
+    Figure 1: RISC Zero’s Bonsai delegated proof generation services.
+</div>
 
 This article, Part I, will document our journey towards achieving a functional yet unoptimized prototype. In the subsequent articles, we will delve into our efforts to optimize the implementation. Additionally, we will explore various future directions inspired by our insightful conversations with RISC Zero developers.
 
@@ -27,37 +30,57 @@ This article, Part I, will document our journey towards achieving a functional y
 
 To understand TFHE, it's essential to first grasp the concept of fully homomorphic encryption (FHE). At its core, FHE is an encryption algorithm, denoted as **E**, designed for data encryption. For example, given a plaintext **a**, encryption gives us the ciphertext **E(a)**.
 
-**a → E(a)**
-
+<div class="caption">
+    <b>a → E(a)</b>
+</div>
+    
 The full homomorphism means that we can compute over the ciphertexts, including additions, subtractions, and multiplications.
 
-**Addition: E(a), E(b) → E(a + b)**
-**Subtraction: E(a), E(b) → E(a - b)**
-**Multiplication: E(a), E(b) → E(a × b)**
+<div class="caption">
+    <p><b>Addition: E(a), E(b) → E(a + b)</b></p>
+    <p><b>Subtraction: E(a), E(b) → E(a - b)</b></p>
+    <p><b>Multiplication: E(a), E(b) → E(a × b)</b></p>
+</div>
 
 When the plaintexts are binary bits (0 and 1), it becomes possible to represent all binary logic gates using FHE. This includes fundamental gates like XOR and AND, as they form the basis of any binary logic operations in FHE.
 
 
-|       | Input 1  | Input 2  |       Input 3        |
-| ----- |:--------:|:--------:|:--------------------:|
-| *XOR* | **E(a)** | **E(b)** | **E(a + b - a × b)** |
-| *AND* | **E(a)** | **E(b)** |     **E(a × b)**     |
-
+<table class="caption" style="width: 50%; font-size: 14px; text-align:center;">
+    <thead>
+    <tr style="text-align:center;">
+        <th></th><th>Input 1</th>
+        <th>Input 2</th><th style="text-align:center;">Input 3</th>
+    </tr>
+        </thead>
+    <tbody>
+    <tr>
+        <td align="center"><i>XOR</i></td><td align="center"><b>E(a)</b></td><td align="center"><b>E(b)</b></td><td align="center"><b>E(a + b - a × b)</b></td>
+    </tr>
+    <tr>
+        <td align="center"><i>AND</i></td><td><B>E(a)</B></td><td><B>E(b)</B></td><td><b>E(a × b)</b></td>
+    </tr></tbody>
+</table>
+<div class="caption">
 Table 1: Representing XOR and AND gates in fully homomorphic encryption. 
+</div>
 
 Given its capability to represent all binary gates, FHE is thus able to perform arbitrary computations within a bounded size. In blockchain applications, FHE is garnering significant interest for enabling privacy in decentralized finance (DeFi) applications. For instance, in privacy-enhanced decentralized exchanges (DEXs), FHE can confidentially handle computations for automated market makers (AMMs).
 
 A major portion of the computational overhead in FHE is attributed to managing and mitigating 'noise'. All existing FHE constructions rely on the learning-with-error (LWE) assumption or its variants, which form the foundational basis of these cryptographic systems. And for each step of the computation, the output—such as **E(a + b - a × b)**—will have more noise than the inputs **E(a)** and **E(b)**, and this output may become the input for subsequent steps. As computations progress, the ciphertexts accumulate increasingly larger amounts of noise. As depicted in Figure 2, once the noise in a ciphertext reaches a certain threshold, it renders the ciphertext undecryptable.
 
-![](https://hackmd.io/_uploads/rkgdjsCR_6.png =400x)
-Figure 2: An illustration of the noise in FHE, extracted from [a paper](https://eprint.iacr.org/2021/1402) of Marc Joye (Zama).
+![](https://hackmd.io/_uploads/rkgdjsCR_6.png#center =320x)
+<div class="caption">
+    Figure 2: An illustration of the noise in FHE, extracted from <a href="https://eprint.iacr.org/2021/1402">a paper</a> of Marc Joye (Zama).
+</div>
 
 To facilitate unbounded computation in FHE, it's essential to find a method for clearing the noise before it becomes excessively large. This technique, known as 'bootstrapping', was first introduced by Craig Gentry in 2009 through his groundbreaking paper on FHE. Bootstrapping involves using an encrypted version of the FHE secret key, often referred to as the 'bootstrapping key', to decrypt and thereby refresh a noisy ciphertext, which results in a new ciphertext that contains the same data, but with less noise. 
 
 One can imagine FHE computation to be a very exhausting exercise—like a marathon—for the ciphertext, and the ciphertext needs to take breaks in order to avoid “burnout”, as we illustrate in Figure 3.
 
-![](https://hackmd.io/_uploads/H1oapA0up.png =400x)
+![](https://hackmd.io/_uploads/H1oapA0up.png#center =350x)
+<div class="caption">
 Figure 3: Think of FHE bootstrapping as a person needing to take a break in order to avoid burnout in a marathon (illustration by Midjourney).
+</div>
 
 Among different fully homomorphic encryption (FHE) algorithms, [TFHE](https://tfhe.github.io/tfhe/) has garnered significant attention because bootstrapping in TFHE is efficient, and TFHE is very suitable for evaluating Boolean circuits over encrypted data. Zama, Fhenix, Inco are all using TFHE.
 
@@ -74,8 +97,8 @@ Now that we have some basic background about FHE, let’s explore how RISC Zero 
 
 RISC Zero is a versatile zero-knowledge proof system specifically designed for RISC-V architecture. In other words, any program that can be compiled into an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format) (executable and linkable format) program over [riscv32im](https://five-embeddev.com/riscv-isa-manual/latest/instr-table.html) (RISC-V 32 bit with the "M" extension for integer multiplication and division) is compatible with RISC Zero. Upon execution by the VM, RISC Zero generates a zero-knowledge proof of this execution, termed as a 'receipt'. Figure 5 illustrates this process.
 
-![](https://hackmd.io/_uploads/Sk1izJJKp.png =450x)
-Figure 5: The workflow of RISC Zero.
+![](https://hackmd.io/_uploads/Sk1izJJKp.png#center =450x)
+<div class="caption">Figure 5: The workflow of RISC Zero.</div>
 
 A frequently asked question about RISC Zero is its preference for RISC-V over other instruction sets. We find two key reasons.
 
@@ -98,8 +121,10 @@ This is much simpler from [modern Intel x86](https://www.felixcloutier.com/x86/)
 
 Second, it is easy to compile various languages to RISC-V, thanks to [LLVM](https://en.wikipedia.org/wiki/LLVM). LLVM is a compilation toolchain that implements an intermediary layer (called "intermediate representation") between the backends ("ISAs") and the frontends ("programming languages"). Since RISC-V is one of the supported backends, LLVM allows the many frontends—including C, C++, Haskell, Ruby, Rust, Swift, and so on to be compiled into RISC-V. 
 
-![](https://hackmd.io/_uploads/SkAsVJ1F6.png =500x)
-Figure 6: LLVM’s three-phase design (illustration from [Chris Lattner’s book](https://aosabook.org/en/v1/llvm.html)), where RISC-V is also an available LLVM backend.
+![](https://hackmd.io/_uploads/SkAsVJ1F6.png#center =450x)
+<div class="caption">
+    Figure 6: LLVM’s three-phase design (illustration from <a href="https://aosabook.org/en/v1/llvm.html">Chris Lattner’s book</a>), where RISC-V is also an available LLVM backend.
+</div>
 
 In other words, through a bottom-up approach, RISC Zero is able to support programs that are written using existing, Web2 programming languages. One can also build their own ZKP domain-specific language (DSL)—which can include [ZoKrates](https://zokrates.github.io/), [Cairo](https://www.cairo-lang.org/), [Noir](https://github.com/noir-lang/noir), and [Circom](https://github.com/iden3/circom)—and create a compiler that converts them into RISC-V. For languages where direct compilation to RISC-V is challenging, an alternative approach is to first compile the DSL into an intermediate language like C/C++, and then use an existing LLVM compiler for the final conversion to RISC-V.
 
@@ -195,8 +220,10 @@ Our starting point is the toy FHE Rust library (https://github.com/tremblaythiba
 - It is very close to Zama’s library that has been used in fhEVM in production. 
 - It is written in Rust, which facilitates straightforward compilation to RISC-V.
 
-![](https://hackmd.io/_uploads/S1ngIJkK6.png =400x)
-Figure 7: Louis’s toy FHE Rust library. 
+![](https://hackmd.io/_uploads/S1ngIJkK6.png#center =400x)
+<div class="caption">
+    Figure 7: Louis’s toy FHE Rust library. 
+</div>
 
 The toy FHE Rust library is minimalistic—it only has 6 files and contains 800 lines of code—but it has full-fledged support for three different types of FHE ciphertexts that we will use.
 
@@ -302,8 +329,8 @@ As we conclude this first part, our next step involves using an RISC-V decompile
 
 For this purpose, we utilize Ghidra (https://github.com/NationalSecurityAgency/ghidra), a comprehensive, free-to-use reverse engineering framework developed by the US National Security Agency (NSA), which notably includes support for RISC-V.
 
-![](https://hackmd.io/_uploads/H1VX3k1F6.png =600x)
-Figure 8: Ghidra’s CodeBrowser on the RISC-V program that RISC Zero is proving.
+![](https://hackmd.io/_uploads/H1VX3k1F6.png#center =600x)
+<div class="caption">Figure 8: Ghidra’s CodeBrowser on the RISC-V program that RISC Zero is proving.</div>
 
 Ghidra allows us to see both the RISC-V assembly code—as displayed in the middle pane—and the decompiled code (presented in C)---as shown on the right. Reflecting on our previous mention of RISC-V's 46 instructions, it's noteworthy that the assembly code we're analyzing utilizes these exact instructions.
 
@@ -375,8 +402,10 @@ puVar1 = (uint *)&anon.874983810a662adbf4687c54e184621b.0.llvm.47187915651638377
 
 In the decompiled code, the first label—anon.874983810a662adbf4687c54e184621b.1.llvm.4718791565163837729—specifically indicates the location of the ciphertext bytes, denoted as C_BYTES. Utilizing Ghidra, we are able to directly observe these ciphertext bytes within the code.
 
-![](https://hackmd.io/_uploads/Byyh31JKa.png =500x)
+![](https://hackmd.io/_uploads/Byyh31JKa.png#center =500x)
+<div class="caption">
 Figure 9: The ELF executable file’s data at location 0x420c4cc (i.e., the s1 register’s initial value), which is for the ciphertext to be bootstrapped.
+</div>
 
 Recall that C_BYTES is incorporated from a file named `c`. By employing [Hex Fiend](https://hexfiend.com/), a tool for hex editing, we can examine the contents of this file. The examination, as depicted below, confirms the consistency of the data.
 
@@ -384,8 +413,10 @@ Recall that C_BYTES is incorporated from a file named `c`. By employing [Hex Fie
 static C_BYTES: &[u8] = include_bytes_aligned!("../../../c");
 ```
 
-![](https://hackmd.io/_uploads/SJew6kytT.png =600x)
+![](https://hackmd.io/_uploads/SJew6kytT.png#center =600x)
+<div class="caption">
 Figure 10: The "c" file that stores the ciphertext to be bootstrapped, shown in a hex editor.
+</div>
 
 In a similar vein, by navigating to the second label — `anon.874983810a662adbf4687c54e184621b.0.llvm.4718791565163837729` — we can locate the bytes corresponding to the bootstrapping key, referred to as `BSK_BYTES`.
 
@@ -394,8 +425,10 @@ Figure 11: The ELF executable file's data at location 0x020c4cc (i.e., the s0 re
 
 And we can also check the source file "bsk", which matches the data above.
 
-![](https://hackmd.io/_uploads/SJ-XRykta.png =500x)
+![](https://hackmd.io/_uploads/SJ-XRykta.png#center =500x)
+<div class="caption">
 Figure 12: The "bsk" file that stores the bootstrapping key, shown in a hex editor.
+</div>
 
 Moving forward, let's explore how the key and ciphertext are utilized within the program. Recall from the Rust source code that both the key and ciphertext are integral in the for loop, specifically in the invocation of the `cmux` function.
 
@@ -449,8 +482,10 @@ pub fn cmux(ctb: &GgswCiphertext, ct1: &GlweCiphertext, ct2: &GlweCiphertext) ->
 
 The decompiled code reveals that function calls to `sub` and `add` have been effectively inlined during compilation. This inlining results in visible loops within the code, which are responsible for simulating 64-bit integer operations. Additionally, the code utilizes several calls to `memset` and `memcpy`. Notably, some instances of `memset` are employed for zeroizing memory, which may not always be necessary. This observation opens up potential optimization avenues, particularly in eliminating unnecessary `memset` calls.
 
-![](https://hackmd.io/_uploads/H1Z001yFa.png =400x)
+![](https://hackmd.io/_uploads/H1Z001yFa.png#center =400x)
+<div class="caption">
 Figure 13: Decompiled code of the RISC-V instructions of the `cmux` function.
+</div>
 
 With this, we conclude Part I of our technical deep dive into verifying FHE in RISC Zero. This article provided an overview of FHE and RISC Zero, detailed the process of adapting existing Rust code for RISC Zero, introduced a novel data loading optimization trick in RISC Zero, and demonstrated the use of Ghidra for disassembling and analyzing RISC-V code to identify further optimization opportunities.
 
@@ -459,3 +494,18 @@ Keep an eye out for the upcoming articles in our 'Verifying FHE in RISC Zero' se
 Originally posted on Nov 16, 2023 on https://l2ivresearch.substack.com/p/tech-deep-dive-verifying-fhe-in-risc.
 
 _Footnote:_ The previous version of the article uses `include_bytes` instead of `include_bytes_aligned` to load data into the ELF. We notice that `include_bytes` may fail to align the data properly and can cause an alignment error. Therefore, we opt to use `include_bytes_aligned` from [this crate](https://docs.rs/include_bytes_aligned/latest/include_bytes_aligned/).
+
+<style>
+    .caption {
+        text-align: center;
+        font-size: 14px;
+        margin-bottom: 10px;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+    }
+    img[src*='#center'] {
+        display: block;
+        margin: auto;
+    }
+</style>
