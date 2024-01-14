@@ -456,4 +456,6 @@ With this, we conclude Part I of our technical deep dive into verifying FHE in R
 
 Keep an eye out for the upcoming articles in our 'Verifying FHE in RISC Zero' series, where we will delve deeper into more advanced concepts and optimizations.
 
+Originally posted on Nov 16, 2023 on https://l2ivresearch.substack.com/p/tech-deep-dive-verifying-fhe-in-risc.
+
 _Footnote:_ The previous version of the article uses `include_bytes` instead of `include_bytes_aligned` to load data into the ELF. We notice that `include_bytes` may fail to align the data properly and can cause an alignment error. Therefore, we opt to use `include_bytes_aligned` from [this crate](https://docs.rs/include_bytes_aligned/latest/include_bytes_aligned/).
