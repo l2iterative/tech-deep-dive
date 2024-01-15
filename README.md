@@ -8,4 +8,4 @@ which is crucial for a few of our articles.
 ### List
 
 - [Verifying FHE in RISC Zero, Part I](https://hackmd.io/@l2iterative/fhe0-1)
-
+- [Verifying FHE in RISC Zero, Part II](https://hackmd.io/@l2iterative/fhe0-2)
